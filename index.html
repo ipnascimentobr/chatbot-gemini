@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+</head>
+<body>
+    <div class="chatlog"></div>
+    <input type="text" id="userInput" />
+    <button onclick="sendMessage()">Enviar</button>
+    <div id="error-message"></div>
+
+    <script>
+        const apiKey = 'KEY-API'; // Substitua pela sua API key - NÃO USE EM PRODUÇAO COM A SUA API - CÓDIGO APENAS PARA TESTE
+        const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+
+        const chatLog = document.querySelector('.chatlog');
+        const userInput = document.getElementById('userInput');
+        const errorMessageElement = document.getElementById('error-message');
+
+        function sendMessage() {
+            const userMessage = userInput.value.trim();
+            if (userMessage === '') return;
+            userInput.value = '';
+
+            const userDiv = document.createElement('div');
+            userDiv.classList.add('user');
+            userDiv.textContent = userMessage;
+            chatLog.appendChild(userDiv);
+
+            const data = {
+                contents: [
+                {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Analyze the sentiment of the following Tweets and classify them as POSITIVE, NEGATIVE, or NEUTRAL. \"It'\''s so beautiful today!\""
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "POSITIVE"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "\"It'\''s so cold today I can'\''t feel my feet...\""
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "NEGATIVE"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "\"The weather today is perfectly adequate.\""
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "NEUTRAL"
+        }
+      ]
+    },
+                  {
+                    "role": "user",
+                    "parts": [
+                        {
+                        "text": "responda em português \n"
+                        }
+                    ]
+                    },
+                    {
+                        role: "user",
+                        parts: [{ text: userMessage }]
+                    }
+                    
+                ],
+                generationConfig: {
+                    temperature: 1,
+                    topK: 64,
+                    topP: 0.95,
+                    maxOutputTokens: 8192,
+                    responseMimeType: "text/plain"
+                }
+            };
+
+            fetch(url, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+})
+.then(response => {
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+    return response.json();
+})
+.then(data => {
+    console.log('Resposta da API:', data); // Log da resposta da API
+
+    // Verifica se a resposta contém candidatos
+    if (data.candidates && data.candidates.length > 0) {
+        console.log('Candidatos encontrados:', data.candidates); // Log dos candidatos
+
+        // Acesse o texto do primeiro candidato
+        const generatedText = data.candidates[0].content.parts[0].text; // Acessando a propriedade correta
+
+        if (generatedText) {
+            const botDiv = document.createElement('div');
+            botDiv.classList.add('bot');
+            botDiv.textContent = generatedText;
+            chatLog.appendChild(botDiv);
+        } else {
+            console.error('Candidato não contém texto:', data.candidates[0]);
+            errorMessageElement.textContent = 'Algo deu errado. Tente novamente mais tarde.';
+        }
+    } else {
+        console.error('Resposta da API não contém candidatos:', data);
+        errorMessageElement.textContent = 'Algo deu errado. Tente novamente mais tarde.';
+    }
+})
+.catch(error => {
+    console.error('Error:', error);
+    errorMessageElement.textContent = 'Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.';
+});
+
+
+        }
+    </script>
+</body>
+</html>
